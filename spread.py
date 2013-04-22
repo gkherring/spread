@@ -343,6 +343,12 @@ class simulate(object):
 def main():
     for i in range(11):
         simulate(20, 70, i/float(10),"fixed_mort", "degree", "BA")
+    for i in range(11):
+        simulate(20, 70, i/float(10),"mortality", "degree", "BA")
+    for i in range(11):
+        simulate(20, 70, i/float(10),"fixed_mort", "random", "BA")
+    for i in range(11):
+        simulate(20, 70, i/float(10),"mortality", "random", "BA")
     
     
 if __name__=="__main__":
