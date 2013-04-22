@@ -292,7 +292,7 @@ class simulate(object):
             #plt.show()
         return percent_dead_results, percent_infected_results
 
-    def dynamo_spread(self,mortality_percent):
+    def dynamo_spread(self,percent):
         infected_percentage_points=41
         iterations=100
         results=list()
@@ -317,7 +317,7 @@ class simulate(object):
                     verts = self.gen_infection_eigenranked(verts,edges,int(percent*num))
                 elif self.infection_type=="betweenness":
                     verts = self.gen_infection_betweennessranked(verts,edges,int(percent*num))
-                ftime,verts_out=self.spread(verts,edges,mortality_percent)
+                ftime,verts_out=self.spread(verts,edges,mrate)
                 percent_dead = len([vertex for vertex in verts_out if vertex==3])/float(num)
                 percent_affect = len([vertex for vertex in verts_out if vertex!=0])/float(num)
                 dead.append(percent_dead/float(iterations))
