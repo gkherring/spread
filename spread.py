@@ -138,22 +138,14 @@ class simulate(object):
         return new_verts
     
     def gen_infection_eigenranked(self,verts,edges,size):
-        new_verts = verts[:]
-        indecies = range(len(verts))
-        random.shuffle(indecies)
-        for i in range(size):
-            new_verts[indecies[i]]=1
+        new_verts = verts[:] #Needs to be writen
         return new_verts
     
     def gen_infection_betweennessranked(self,verts,edges,size):
-        new_verts = verts[:]
-        indecies = range(len(verts))
-        random.shuffle(indecies)
-        for i in range(size):
-            new_verts[indecies[i]]=1
+        new_verts = verts[:]#Needs to be writen
         return new_verts
     
-    def spread(self, verts_in, edges, mortality_rate):
+    def spread(self, verts_in, edges, lethality_rate):
         num=len(verts_in)
         timeout=num
         finish_time=None
@@ -172,7 +164,7 @@ class simulate(object):
                     if len(infected_neighborhood) >= (len(live_neighborhood)/2.0):
                         new_verts[i] = 1
                 elif verts[i] == 1:
-                    if random.random()<mortality_rate:
+                    if random.random()<lethality_rate:
                         new_verts[i] = 3
                     else:
                         new_verts[i] = 2
@@ -188,11 +180,11 @@ class simulate(object):
         return finish_time,verts
     
     def min_dynamo(self):
-        mortality_points=41
-        iterations=30
+        lethality_points=51
+        iterations=150
         previous=0
         results=list()
-        temp_results = [0]*mortality_points
+        temp_results = [0]*lethality_points
         for iter in range(iterations):
             mins = list()
             num=random.randint(self.min,self.max)
@@ -200,8 +192,8 @@ class simulate(object):
                 edges = self.gen_Barabasi_Albert(num, 4, 6)
             else:
                 edges = self.gen_Watts_Strogatz(num, 10, 0.5)
-            for pre_mrate in range(mortality_points):
-                mrate=pre_mrate/float(mortality_points-1)
+            for pre_mrate in range(lethality_points):
+                mrate=pre_mrate/float(lethality_points-1)
                 sizes=list()
                 success_flag = 0
                 fail_flag = 0
@@ -231,13 +223,16 @@ class simulate(object):
                 mins.append(min(sizes)/float(num))
             #results.append(mins)
             print mins
-            temp_results = [temp_results[m]+mins[m] for m in range(mortality_points)]
+            temp_results = [temp_results[m]+mins[m] for m in range(lethality_points)]
         if self.plot:
-            x = [location/float(mortality_points-1) for location in range(0,mortality_points)]
+            x = [location/float(lethality_points-1) for location in range(0,lethality_points)]
             figure = plt.figure(1)
+            ax1 = fig.add_axes((.1,.4,.8,.5))
             plt.clf()
             plt.plot(x,temp_results)
-            plt.title(", ".join([str(self.min),str(self.max),self.infection_type,self.graph_type,"dynamo"]))
+            
+            txt=", ".join(["Averaged over "+str(iterations)+" distinct graphs","Min Graph Size: "+str(self.min),"Max Graph Size: "+str(self.max)+"\n", "Infecting type: "+self.infection_type,"Graph type: "+self.graph_type,"Showing min-dynamo ceiling vs Lethality"])
+            plt.title(txt, fontsize=10)
             plt.xlabel("Lethality")
             plt.ylabel("Percent of Graph")
             figure.savefig(", ".join([str(dt.now()),self.infection_type,self.graph_type])+"_min_dynamo_ceiling.png")
@@ -245,11 +240,11 @@ class simulate(object):
         return results
     
     def mortality(self,percent):
-        mortality_points=41
-        iterations=100
+        lethality_points=51
+        iterations=200
         results=list()
-        percent_dead_results = [0]*mortality_points
-        percent_infected_results = [0]*mortality_points
+        percent_dead_results = [0]*lethality_points
+        percent_infected_results = [0]*lethality_points
         for iter in range(iterations):
             dead = list()
             infected = list()
@@ -258,8 +253,8 @@ class simulate(object):
                 edges = self.gen_Barabasi_Albert(num, 4, 6)
             else:
                 edges = self.gen_Watts_Strogatz(num, 10, 0.5)
-            for pre_mrate in range(mortality_points):
-                mrate=pre_mrate/float(mortality_points-1)
+            for pre_mrate in range(lethality_points):
+                mrate=pre_mrate/float(lethality_points-1)
                 verts = [0]*num
                 if self.infection_type=="degree":
                     verts = self.gen_infection_degreeranked(verts,edges,int(percent*num))
@@ -274,17 +269,18 @@ class simulate(object):
                 percent_affect = len([vertex for vertex in verts_out if vertex!=0])/float(num)
                 dead.append(percent_dead/float(iterations))
                 infected.append(percent_affect/float(iterations))
-            percent_dead_results = [percent_dead_results[m]+dead[m] for m in range(mortality_points)]
-            percent_infected_results = [percent_infected_results[m]+infected[m] for m in range(mortality_points)]
+            percent_dead_results = [percent_dead_results[m]+dead[m] for m in range(lethality_points)]
+            percent_infected_results = [percent_infected_results[m]+infected[m] for m in range(lethality_points)]
         print percent_dead_results
         print percent_infected_results
         if self.plot:
-            x = [location/float(mortality_points-1) for location in range(0,mortality_points)]
+            x = [location/float(lethality_points-1) for location in range(0,lethality_points)]
             figure = plt.figure(1)
             plt.clf()
             one, = plt.plot(x,percent_dead_results)
             two, = plt.plot(x,percent_infected_results)
-            plt.title(", ".join([str(self.min),str(self.max),self.infection_type,self.graph_type,"mortality"]))
+            txt = ", ".join(["Percentage of the graph initially infected: "+str(percent),"Averaged over "+str(iterations)+" distinct graphs\n","Min Graph Size: "+str(self.min),"Max Graph Size: "+str(self.max), "Infecting type: "+self.infection_type+"\n","Graph type: "+self.graph_type,"Mortality and Spread vs Lethality"])
+            plt.title(txt, fontsize=10)
             plt.legend([one,two],["Dead","Infected"])
             plt.xlabel("Lethality")
             plt.ylabel("Percent of Graph")
@@ -292,9 +288,9 @@ class simulate(object):
             #plt.show()
         return percent_dead_results, percent_infected_results
 
-    def dynamo_spread(self,mortality_percent):
-        infected_percentage_points=41
-        iterations=100
+    def dynamo_spread(self,lethality_percent):
+        infected_percentage_points=51
+        iterations=200
         results=list()
         percent_dead_results = [0]*infected_percentage_points
         percent_infected_results = [0]*infected_percentage_points
@@ -317,7 +313,7 @@ class simulate(object):
                     verts = self.gen_infection_eigenranked(verts,edges,int(percent*num))
                 elif self.infection_type=="betweenness":
                     verts = self.gen_infection_betweennessranked(verts,edges,int(percent*num))
-                ftime,verts_out=self.spread(verts,edges,mortality_percent)
+                ftime,verts_out=self.spread(verts,edges,lethality_percent)
                 percent_dead = len([vertex for vertex in verts_out if vertex==3])/float(num)
                 percent_affect = len([vertex for vertex in verts_out if vertex!=0])/float(num)
                 dead.append(percent_dead/float(iterations))
@@ -329,10 +325,12 @@ class simulate(object):
         if self.plot:
             x = [location/float(infected_percentage_points-1) for location in range(0,infected_percentage_points)]
             figure = plt.figure(1)
+            ax1 = figure.add_axes((.1,.4,.8,.5))
             plt.clf()
             one, = plt.plot(x,percent_dead_results)
             two, = plt.plot(x,percent_infected_results)
-            plt.title(", ".join([str(self.min),str(self.max),self.infection_type,self.graph_type,"Given size"]))
+            txt=", ".join(["Lethality of Infection: "+str(percent),"Averaged over "+str(iterations)+" distinct graphs\n","Min Graph Size: "+str(self.min),"Max Graph Size: "+str(self.max), "Infecting type: "+self.infection_type+"\n","Graph type: "+self.graph_type,"Mortality and Spread vs Infected Size"])
+            plt.title(txt,fontsize=10)
             plt.legend([one,two],["Dead","Infected"])
             plt.xlabel("Percent Infected")
             plt.ylabel("Percent of Graph")
