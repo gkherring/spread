@@ -3,8 +3,10 @@ import random
 import visual
 from math import sin, cos, pi
 import matplotlib.pyplot as plt
+from matplotlib import pylab
 from time import sleep
 from datetime import datetime as dt
+from numpy import std, mean, sqrt
              
 class graph_vis(object):
     def __init__(self, verts, edges):
@@ -184,7 +186,7 @@ class simulate(object):
         iterations=150
         previous=0
         results=list()
-        temp_results = [0]*lethality_points
+        temp_results = [list() for i in range(lethality_points)]
         for iter in range(iterations):
             mins = list()
             num=random.randint(self.min,self.max)
@@ -220,18 +222,21 @@ class simulate(object):
                     if success_flag>self.epsilon and fail_flag>self.epsilon:
                         break
                 previous = min(sizes)
-                mins.append(min(sizes)/float(num))
+                temp_results[pre_mrate].append(min(sizes))
             #results.append(mins)
-            print mins
-            temp_results = [temp_results[m]+mins[m] for m in range(lethality_points)]
+            #print temp_results
+            temp_results = [temp_results[m].append(mins[m]) for m in range(lethality_points)]
         if self.plot:
             x = [location/float(lethality_points-1) for location in range(0,lethality_points)]
             figure = plt.figure(1)
             ax1 = fig.add_axes((.1,.4,.8,.5))
             plt.clf()
-            plt.plot(x,temp_results)
-            
-            txt=", ".join(["Averaged over "+str(iterations)+" distinct graphs","Min Graph Size: "+str(self.min),"Max Graph Size: "+str(self.max)+"\n", "Infecting type: "+self.infection_type,"Graph type: "+self.graph_type,"Showing min-dynamo ceiling vs Lethality"])
+            y = [mean(item) for item in temp_results]
+            error = [2.58*std(item)/sqrt(len(item)) for item in temp_results]
+            print y
+            print error
+            pylab.errorbar(x,y,yerr=error,fmt="ro")
+            txt=", ".join(["Averaged over "+str(iterations)+" distinct graphs","99% Confidence Interval","Min Graph Size: "+str(self.min),"Max Graph Size: "+str(self.max)+"\n", "Infecting type: "+self.infection_type,"Graph type: "+self.graph_type,"Showing min-dynamo ceiling vs Lethality"])
             plt.title(txt, fontsize=10)
             plt.xlabel("Lethality")
             plt.ylabel("Percent of Graph")
@@ -243,8 +248,8 @@ class simulate(object):
         lethality_points=51
         iterations=200
         results=list()
-        percent_dead_results = [0]*lethality_points
-        percent_infected_results = [0]*lethality_points
+        percent_dead_results = [list() for i in range(lethality_points)]
+        percent_infected_results = [list() for i in range(lethality_points)]
         for iter in range(iterations):
             dead = list()
             infected = list()
@@ -267,19 +272,24 @@ class simulate(object):
                 ftime,verts_out=self.spread(verts,edges,mrate)
                 percent_dead = len([vertex for vertex in verts_out if vertex==3])/float(num)
                 percent_affect = len([vertex for vertex in verts_out if vertex!=0])/float(num)
-                dead.append(percent_dead/float(iterations))
-                infected.append(percent_affect/float(iterations))
-            percent_dead_results = [percent_dead_results[m]+dead[m] for m in range(lethality_points)]
-            percent_infected_results = [percent_infected_results[m]+infected[m] for m in range(lethality_points)]
-        print percent_dead_results
-        print percent_infected_results
+                percent_dead_results[pre_mrate].append(percent_dead)
+                percent_infected_results[pre_mrate].append(percent_affect)
+            #percent_dead_results = [percent_dead_results[m].append(dead[m]) for m in range(lethality_points)]
+            #percent_infected_results = [percent_infected_results[m].append(infected[m]) for m in range(lethality_points)]
+        #print percent_dead_results
+        #print percent_infected_results
         if self.plot:
             x = [location/float(lethality_points-1) for location in range(0,lethality_points)]
             figure = plt.figure(1)
             plt.clf()
-            one, = plt.plot(x,percent_dead_results)
-            two, = plt.plot(x,percent_infected_results)
-            txt = ", ".join(["Percentage of the graph initially infected: "+str(percent),"Averaged over "+str(iterations)+" distinct graphs\n","Min Graph Size: "+str(self.min),"Max Graph Size: "+str(self.max), "Infecting type: "+self.infection_type+"\n","Graph type: "+self.graph_type,"Mortality and Spread vs Lethality"])
+            yone = [mean(item) for item in percent_dead_results]
+            ytwo = [mean(item) for item in percent_infected_results]
+            errorone = [2.58*std(item)/sqrt(len(item)) for item in percent_dead_results]
+            errortwo = [2.58*std(item)/sqrt(len(item)) for item in percent_infected_results]
+            one = pylab.errorbar(x,yone,yerr=errorone,fmt='ro')
+            two = pylab.errorbar(x,ytwo,yerr=errortwo,fmt='bo')
+            print yone, ytwo, errorone, errortwo
+            txt = ", ".join(["Percentage of the graph initially infected: "+str(percent),"Averaged over "+str(iterations)+" distinct graphs\n","99% Confidence Interval","Min Graph Size: "+str(self.min),"Max Graph Size: "+str(self.max), "Infecting type: "+self.infection_type+"\n","Graph type: "+self.graph_type,"Mortality and Spread vs Lethality"])
             plt.title(txt, fontsize=10)
             plt.legend([one,two],["Dead","Infected"])
             plt.xlabel("Lethality")
@@ -292,8 +302,8 @@ class simulate(object):
         infected_percentage_points=51
         iterations=200
         results=list()
-        percent_dead_results = [0]*infected_percentage_points
-        percent_infected_results = [0]*infected_percentage_points
+        percent_dead_results = [[] for i in range(infected_percentage_points)]
+        percent_infected_results = [[] for i in range(infected_percentage_points)]
         for iter in range(iterations):
             dead = list()
             infected = list()
@@ -316,20 +326,27 @@ class simulate(object):
                 ftime,verts_out=self.spread(verts,edges,lethality_percent)
                 percent_dead = len([vertex for vertex in verts_out if vertex==3])/float(num)
                 percent_affect = len([vertex for vertex in verts_out if vertex!=0])/float(num)
-                dead.append(percent_dead/float(iterations))
-                infected.append(percent_affect/float(iterations))
-            percent_dead_results = [percent_dead_results[m]+dead[m] for m in range(infected_percentage_points)]
-            percent_infected_results = [percent_infected_results[m]+infected[m] for m in range(infected_percentage_points)]
-        print percent_dead_results
-        print percent_infected_results
+                percent_dead_results[pre_infection_percent].append(percent_dead)
+                percent_infected_results[pre_infection_percent].append(percent_affect)
+            #percent_dead_results = [percent_dead_results[m].append(dead[m]) for m in range(infected_percentage_points)]
+            #percent_infected_results = [percent_infected_results[m].append(infected[m]) for m in range(infected_percentage_points)]
+        #print percent_dead_results
+        #print percent_infected_results
         if self.plot:
             x = [location/float(infected_percentage_points-1) for location in range(0,infected_percentage_points)]
             figure = plt.figure(1)
             ax1 = figure.add_axes((.1,.4,.8,.5))
             plt.clf()
-            one, = plt.plot(x,percent_dead_results)
-            two, = plt.plot(x,percent_infected_results)
-            txt=", ".join(["Lethality of Infection: "+str(percent),"Averaged over "+str(iterations)+" distinct graphs\n","Min Graph Size: "+str(self.min),"Max Graph Size: "+str(self.max), "Infecting type: "+self.infection_type+"\n","Graph type: "+self.graph_type,"Mortality and Spread vs Infected Size"])
+            yone = [mean(item) for item in percent_dead_results]
+            ytwo = [mean(item) for item in percent_infected_results]
+            print percent_infected_results
+            errorone = [2.58*std(item)/sqrt(len(item)) for item in percent_dead_results]
+            errortwo = [2.58*std(item)/sqrt(len(item)) for item in percent_infected_results]
+            print x
+            print ytwo, errortwo
+            one = pylab.errorbar(x,yone,yerr=errorone,fmt='ro')
+            two = pylab.errorbar(x,ytwo,yerr=errortwo,fmt='bo')
+            txt=", ".join(["Lethality of Infection: "+str(percent),"Averaged over "+str(iterations)+" distinct graphs\n","99% Confidence Interval","Min Graph Size: "+str(self.min),"Max Graph Size: "+str(self.max), "Infecting type: "+self.infection_type+"\n","Graph type: "+self.graph_type,"Mortality and Spread vs Infected Size"])
             plt.title(txt,fontsize=10)
             plt.legend([one,two],["Dead","Infected"])
             plt.xlabel("Percent Infected")
